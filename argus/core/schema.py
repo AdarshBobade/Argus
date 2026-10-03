@@ -3,6 +3,7 @@ from typing import Literal , Union
 
 RiskTier = Literal["read_only" , "side_effecting"]
 VerdictDecision = Literal["pass", "flag", "halt", "redirect"]
+FinalStatus = Literal["completed", "halted", "errored", "in_progress"]
 
 
 # Payload specific to an llm reasoning call
@@ -47,7 +48,7 @@ class Trajectory(BaseModel):
     goal : str
     started_at : int 
     ended_at : int | None = None
-    final_status: Literal["completed", "halted", "errored", "in_progress"]
+    final_status: FinalStatus
     events : list[Event] = Field(default_factory=list)  # giving an empty list by default
     steps : list[Step] = Field(default_factory=list)
 
