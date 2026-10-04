@@ -1,11 +1,16 @@
 from pydantic import BaseModel , Field
-from typing import Literal , Union 
+from typing import Literal , Union, Protocol
 
 RiskTier = Literal["read_only" , "side_effecting"]
 VerdictDecision = Literal["pass", "flag", "halt", "redirect"]
 FinalStatus = Literal["completed", "halted", "errored", "in_progress"]
 
-
+# All the models which can travel through EventBus :
+class BusMessage(Protocol):
+    trajectory_id: str
+    event_id: str
+    event_type: str
+    
 # Payload specific to an llm reasoning call
 class LLMCallDetails(BaseModel):
     prompt : str

@@ -5,7 +5,7 @@ import inspect
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Awaitable, Callable, Optional, Union, Literal
-from .schema import Event
+from .schema import Event, BusMessage
 
 # Using logger if something goes wrong with the subscriber to log it.
 logger = logging.getLogger(__name__)
@@ -38,16 +38,16 @@ class EventBus:
     def unsubscribe(self , callback: Callback) -> None :
         self.subscribers = [ sub for sub in self.subscribers if sub.callback is not callback]
 
-
-    def publish(self , event: Event):
+    # Both Event and ProposedAction can travel through EventBus if they follow BusMessage Protocol:
+    def publish(self , message: BusMessage):
         for subscriber in self.subscribers :
-            if subscriber.event_type is not None and subscriber.event_type != event.event_type :
+            if subscriber.event_type is not None and subscriber.event_type != message.event_type :
                 continue
 
             if subscriber.is_async :
-                asyncio.create_task(self.run_async(subscriber.callback, event))
+                asyncio.create_task(self.run_async(subscriber.callback, message))
             else :
-                self.run_sync(subscriber.callback, event)
+                self.run_sync(subscriber.callback, message)
 
     def run_sync(self, callback: SyncCallback , event: Event) -> None:
         try :
