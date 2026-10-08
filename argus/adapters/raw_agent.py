@@ -27,9 +27,19 @@ class RawAgentAdapter(BaseAdapter):
 
         start = time.perf_counter()
         output = llm_fn(prompt)
-
-        latency_ms = int(time.perf_counter() - start)*1000
+        latency_ms = int((time.perf_counter() - start)*1000)
 
         self.record_llm_call(prompt=prompt, output=output, cost=cost, latnecy_ms=latency_ms)
-
         return output
+
+
+    def call_tool(self, tool_fn: Callable[..., str], tool_name: str, tool_args: dict, risk_tier: RiskTier, cost: float=0.0) -> str :
+
+        self.on_action_proposed(tool_name=tool_name, tool_args=tool_args, risk_tier=risk_tier )
+        start = time.perf_counter()
+
+        tool_output = tool_fn(**tool_args)
+        latency_ms = int((time.perf_counter() - start)*1000)
+        self.record_tool_result(tool_name=tool_name, tool_args=tool_args, tool_output=tool_output, risk_tier=risk_tier, cost=cost, latency_ms=latency_ms)
+
+        return tool_output
