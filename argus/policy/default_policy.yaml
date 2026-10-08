@@ -1,0 +1,87 @@
+# Argus default Policy
+# Default policy decides what to do with the checks or the results we got from the checks
+version: 1
+
+# MODE
+# enforce: false -> SHADOW Mode; Argus evaluates every step and then logs what it would've done , but never interferes between the Agent's workflow
+# enforce: true -> ENFORCE Mode; Argus can interfere in between the trajectory of the agent and take actions like HALT/ REDIRECT 
+# Starts by default in shadow mode 
+mode:
+  enforce: false
+
+# TOOLS
+# Unknown and unlisted tools get default_risk_tier
+tools:
+  default_risk_tier: side_effecting
+  risk_tiers:
+    search: read_only
+    read_file: read_only
+    calculator: read_only
+    get_weather: read_only
+    send_email: side_effecting
+    write_file: side_effecting
+    delete_file: side_effecting
+    make_payment: side_effecting
+
+
+# CHECKS 
+# active: which cheap rule based checks run on every step
+# thresholds: the numbers to compare check against
+checks:
+  active:
+    - invalid_tool_call
+    - redundant_step
+    - cost_limit
+    - latency_limit
+    - goal_drift
+  
+  thresholds:
+    max_run_cost_usd: 0.50          
+    max_step_latency_ms: 10000      # slowest acceptable single step
+    max_identical_calls: 3          
+    goal_drift_similarity_floor: 0.35   # similarity to the goal below this triggers escalation (0 to 1)
+
+# GUARDRAIL
+guardrail:
+  verdict_table:
+    side_effecting:
+      - min_confidence: 0.80
+        decision: halt
+      - min_confidence: 0.50
+        decision: flag
+      - min_confidence: 0.0
+        decision: pass
+    read_only:
+      - min_confidence: 0.90
+        decision: redirect
+      - min_confidence: 0.60
+        decision: flag
+      - min_confidence: 0.0
+        decision: pass
+ 
+  # Everything not listed uses the default non-blocking
+  synchronous_blocking_tools:
+    - send_email
+    - make_payment
+    - delete_file
+ 
+  # if these many steps run without any LLM judge verdict, the next step is forced to wait for one regardless of its risk tier
+  max_unverified_steps: 3
+ 
+  # Text injected back into the agent when a verdict is "redirect".
+  # {reason} is filled in with the check's explanation.
+  redirect_message: >
+    Argus: your last action looks off-track ({reason}).
+    Reconsider your plan before continuing.
+
+# JUDGE
+# for slower LLM as judge response
+judge:
+  timeout_seconds: 3.0
+  on_timeout:
+    read_only: pass
+    side_effecting: flag
+ 
+
+
+
